@@ -1,0 +1,87 @@
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+Description: VPC Graph Template
+
+Parameters:
+  VPCSecurityGroupIds:
+    Type: List<AWS::EC2::SecurityGroup::Id>
+  VPCSubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+  BucketName:
+    Type: String
+  ObjectName:
+    Type: String
+
+Resources:
+
+  NeptuneDBSubnetGroup:
+    Type: AWS::Neptune::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: DBSubnetGroup
+      SubnetIds: !Ref VPCSubnetIds
+
+  NeptuneDBCluster:
+    Type: AWS::Neptune::DBCluster
+    Properties:
+      VpcSecurityGroupIds: !Ref VPCSecurityGroupIds
+      DBSubnetGroupName: !Ref NeptuneDBSubnetGroup
+      AssociatedRoles:
+        - RoleArn: !GetAtt ["NeptuneUploadRole", "Arn"]
+
+  NeptuneDBInstance:
+    Type: AWS::Neptune::DBInstance
+    Properties:
+      DBInstanceClass: db.t3.medium
+      DBSubnetGroupName: !Ref NeptuneDBSubnetGroup
+      DBClusterIdentifier: !Ref NeptuneDBCluster
+
+
+  VPCGraphLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: vpcgraph.handler
+      Runtime: python3.6
+      Timeout: 900
+      Environment:
+        Variables:
+          S3Bucket: !Ref BucketName
+          NeptuneEndpoint: !Sub "${NeptuneDBCluster.Endpoint}:${NeptuneDBCluster.Port}"
+          NeptuneIAMRole: !GetAtt ["NeptuneUploadRole", "Arn"]
+      CodeUri:
+        Bucket: !Ref BucketName
+        Key: !Ref ObjectName
+      VpcConfig:
+        SubnetIds: !Ref VPCSubnetIds
+        SecurityGroupIds: !Ref VPCSecurityGroupIds
+      Policies:
+        - Statement:
+          - Sid: EC2Describe
+            Effect: Allow
+            Action:
+              - ec2:Desc*
+            Resource: '*'
+          - Sid: S3Put
+            Effect: Allow
+            Action:
+              - s3:Put*
+            Resource: '*'
+
+  NeptuneUploadRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: ''
+            Effect: Allow
+            Principal:
+              Service: rds.amazonaws.com
+            Action: 'sts:AssumeRole'
+      Description: This role allows data to be uploaded to Neptune from S3
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess'
+      Path: /
+
+Outputs:
+  LambdaFunctionName:
+    Value: !Ref VPCGraphLambda
