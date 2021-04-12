@@ -58,13 +58,14 @@ Resources:
           - Sid: EC2Describe
             Effect: Allow
             Action:
-              - ec2:Desc*
+              - ec2:DescribeInternetGateways
+              - ec2:DescribeVpcPeeringConnections
             Resource: '*'
           - Sid: S3Put
             Effect: Allow
             Action:
-              - s3:Put*
-            Resource: '*'
+              - s3:PutObject
+            Resource: !Sub "arn:aws:s3:::${BucketName}"
 
   NeptuneUploadRole:
     Type: AWS::IAM::Role
