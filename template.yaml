@@ -25,6 +25,7 @@ Resources:
     Properties:
       VpcSecurityGroupIds: !Ref VPCSecurityGroupIds
       DBSubnetGroupName: !Ref NeptuneDBSubnetGroup
+      StorageEncrypted: true
       AssociatedRoles:
         - RoleArn: !GetAtt ["NeptuneUploadRole", "Arn"]
 
@@ -34,7 +35,6 @@ Resources:
       DBInstanceClass: db.t3.medium
       DBSubnetGroupName: !Ref NeptuneDBSubnetGroup
       DBClusterIdentifier: !Ref NeptuneDBCluster
-
 
   VPCGraphLambda:
     Type: AWS::Serverless::Function

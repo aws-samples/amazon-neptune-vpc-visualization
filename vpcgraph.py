@@ -23,38 +23,34 @@ loader_timeout_seconds = 300  # Max time allowed to load into Neptune
 
 def get_all_igws():
     igws = list()
-    next_token = None
-    while True:
-        if next_token is not None:
-            resp = ec2.describe_internet_gateways(
-                    NextToken=next_token
+
+    # Describe IGWs
+    resp = ec2.describe_internet_gateways()
+    igws.extend(resp['InternetGateways'])
+
+    # Keep describing IGWs until there are no more 
+    while 'NextToken' in resp:
+        resp = ec2.describe_internet_gateways(
+                    NextToken=resp['NextToken']
             )
-        else:
-            resp = ec2.describe_internet_gateways()
         igws.extend(resp['InternetGateways'])
-        if resp.get('NextToken'):
-            next_token = resp['next_token']
-        else:
-            break
 
     return igws
 
 
 def get_all_peering_connections():
     peering_connections = list()
-    next_token = None
-    while True:
-        if next_token is not None:
-            resp = ec2.describe_vpc_peering_connections(
-                    NextToken=next_token
-            )
-        else:
-            resp = ec2.describe_vpc_peering_connections()
+
+    # Describe VPC peering connections
+    resp = ec2.describe_vpc_peering_connections()
+    peering_connections.extend(resp['VpcPeeringConnections'])
+
+    # Keep describing peering connections until there are no more
+    while 'NextToken' in resp:
+        resp = ec2.describe_vpc_peering_connections(
+            NextToken=resp['NextToken']
+        )
         peering_connections.extend(resp['VpcPeeringConnections'])
-        if resp.get('NextToken'):
-            next_token = resp['next_token']
-        else:
-            break
 
     return peering_connections
 
@@ -129,6 +125,7 @@ def handler(event, context):
     file = tempfile.NamedTemporaryFile(suffix=".rdf")
 
     # Print out peering connections
+    print("Listing peering connections")
     for peering in peerings:
         acceptor_vpc_id = peering['AccepterVpcInfo']['VpcId']
         requestor_vpc_id = peering['RequesterVpcInfo']['VpcId']
@@ -141,6 +138,7 @@ def handler(event, context):
                 ReqVpcId=requestor_vpc_id).encode('utf-8'))
 
     # Print out IGWs
+    print("Listing IGWs")
     for igw in igws:
         for attachment in igw['Attachments']:
             if attachment['State'] == 'available':
