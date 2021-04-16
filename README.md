@@ -11,16 +11,9 @@ For this walkthrough, you should have the following pre-requisites:
 • A VPC enabled for internet access in your AWS account. For assistance on setting up a VPC with public and private subnets, please refer to [this guide](https://docs.aws.amazon.com/appstream2/latest/developerguide/create-configure-new-vpc-with-private-public-subnets-nat.html).
 • An S3 bucket which you can put to and read objects from.
 
-# Package the Lambda function in a Zip file
-
+# Package the Lambda function and upload it to S3
 ```
-zip vpcgraph.zip vpcgraph.py
-```
-
-# Copy the Lambda function Zip file to the S3 bucket
-
-```
-aws s3 cp vpcgraph.zip s3://{bucket}
+aws cloudformation package --template-file template.yaml --s3-bucket {bucket} > generated_template.yaml
 ```
 
 # Create the CloudFormation stack that provisions the Neptune cluster and Lambda function
@@ -29,14 +22,13 @@ aws s3 cp vpcgraph.zip s3://{bucket}
 
 ```
 aws cloudformation deploy       \
-  --template-file template.yaml \
+  --template-file generated_template.yaml \
   --stack-name vpcgraph-lambda  \
   --parameter-overrides         \
     BucketName={bucket}         \
     VPCSecurityGroupIds={sgids} \
     VPCSubnetIds={subnetids}    \
-    ObjectName=vpcgraph.zip     \
-  --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM
+  --capabilities CAPABILITY_IAM
 ```
 
 # Invoke the Lambda function

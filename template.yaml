@@ -9,8 +9,6 @@ Parameters:
     Type: List<AWS::EC2::Subnet::Id>
   BucketName:
     Type: String
-  ObjectName:
-    Type: String
 
 Resources:
 
@@ -47,9 +45,7 @@ Resources:
           S3Bucket: !Ref BucketName
           NeptuneEndpoint: !Sub "${NeptuneDBCluster.Endpoint}:${NeptuneDBCluster.Port}"
           NeptuneIAMRole: !GetAtt ["NeptuneUploadRole", "Arn"]
-      CodeUri:
-        Bucket: !Ref BucketName
-        Key: !Ref ObjectName
+      CodeUri: lambda/
       VpcConfig:
         SubnetIds: !Ref VPCSubnetIds
         SecurityGroupIds: !Ref VPCSecurityGroupIds
